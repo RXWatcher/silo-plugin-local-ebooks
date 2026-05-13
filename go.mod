@@ -8,6 +8,7 @@ require (
 	github.com/ContinuumApp/continuum-plugin-sdk v0.3.7
 	github.com/hashicorp/go-hclog v1.6.3
 	github.com/jackc/pgx/v5 v5.9.2
+	github.com/ledongthuc/pdf v0.0.0-20250511090121-5959a4027728
 )
 
 require (
