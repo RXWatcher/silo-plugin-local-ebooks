@@ -58,11 +58,12 @@ func TestAmazon_GetByASIN(t *testing.T) {
 	if c.ExternalID != "B08G9PRS1K" {
 		t.Errorf("external_id: got %q, want %q", c.ExternalID, "B08G9PRS1K")
 	}
-	// Fixture has two author spans (Andy Weir, Ray Porter) so we verify
-	// that the parser walks every byline block in document order, not just
-	// the first. The "(Author)" / "(Narrator)" role labels live in sibling
-	// spans and must be filtered out.
-	wantAuthors := []string{"Andy Weir", "Ray Porter"}
+	// Fixture has two author spans (Andy Weir, Mary Robinette Kowal) so we
+	// verify that the parser walks every byline block in document order,
+	// not just the first. The "(Author)" role labels live in sibling spans
+	// outside the <a> tag and are naturally excluded from the link-text
+	// capture, so the parenthesized-name filter is not exercised here.
+	wantAuthors := []string{"Andy Weir", "Mary Robinette Kowal"}
 	if len(c.Authors) != len(wantAuthors) {
 		t.Errorf("authors: got %v, want %v", c.Authors, wantAuthors)
 	} else {
