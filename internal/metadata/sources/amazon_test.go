@@ -58,8 +58,19 @@ func TestAmazon_GetByASIN(t *testing.T) {
 	if c.ExternalID != "B08G9PRS1K" {
 		t.Errorf("external_id: got %q, want %q", c.ExternalID, "B08G9PRS1K")
 	}
-	if len(c.Authors) == 0 || c.Authors[0] != "Andy Weir" {
-		t.Errorf("authors: got %v, want [Andy Weir]", c.Authors)
+	// Fixture has two author spans (Andy Weir, Ray Porter) so we verify
+	// that the parser walks every byline block in document order, not just
+	// the first. The "(Author)" / "(Narrator)" role labels live in sibling
+	// spans and must be filtered out.
+	wantAuthors := []string{"Andy Weir", "Ray Porter"}
+	if len(c.Authors) != len(wantAuthors) {
+		t.Errorf("authors: got %v, want %v", c.Authors, wantAuthors)
+	} else {
+		for i, want := range wantAuthors {
+			if c.Authors[i] != want {
+				t.Errorf("authors[%d]: got %q, want %q", i, c.Authors[i], want)
+			}
+		}
 	}
 	if c.ISBN != "9780593135204" {
 		t.Errorf("isbn: got %q, want %q", c.ISBN, "9780593135204")
@@ -116,6 +127,32 @@ func TestAmazon_NonASINGetReturnsNil(t *testing.T) {
 	}
 	if c != nil {
 		t.Errorf("expected nil candidate for non-ASIN id, got %+v", c)
+	}
+}
+
+// TestAmazon_HostForRegion locks the region→host contract. The fake-server
+// tests in this file construct Amazon with a non-production baseURL, which
+// trips the early-return at the top of amazonHostFor and bypasses the
+// region switch entirely. A typo like "amazonn.de" would slip through.
+// This test pins each branch directly against the production baseURL.
+func TestAmazon_HostForRegion(t *testing.T) {
+	a := &Amazon{baseURL: amazonBaseURL}
+	cases := []struct {
+		region string
+		want   string
+	}{
+		{"us", "https://www.amazon.com"},
+		{"", "https://www.amazon.com"},
+		{"uk", "https://www.amazon.co.uk"},
+		{"de", "https://www.amazon.de"},
+		{"jp", "https://www.amazon.co.jp"},
+		{"ca", "https://www.amazon.ca"},
+		{"xx", "https://www.amazon.xx"},
+	}
+	for _, tc := range cases {
+		if got := a.amazonHostFor(tc.region); got != tc.want {
+			t.Errorf("amazonHostFor(%q): got %q, want %q", tc.region, got, tc.want)
+		}
 	}
 }
 

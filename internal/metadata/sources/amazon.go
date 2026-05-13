@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/ContinuumApp/continuum-plugin-ebooksdb/internal/metadata"
@@ -208,10 +209,14 @@ func parseAmazonProductPage(html []byte) *metadata.Candidate {
 
 	c := &metadata.Candidate{Title: title}
 
-	// Authors — walk the byline block and pick a-link-normal entries that
+	// Authors — Amazon emits one byline span per contributor, so walk every
+	// matching block in document order and pick a-link-normal entries that
 	// don't look like a role label such as "(Author)".
-	if block := amFirstSubmatch(amAuthorsBlockRE, s); block != "" {
-		for _, m := range amAuthorLinkRE.FindAllStringSubmatch(block, -1) {
+	for _, block := range amAuthorsBlockRE.FindAllStringSubmatch(s, -1) {
+		if len(block) < 2 {
+			continue
+		}
+		for _, m := range amAuthorLinkRE.FindAllStringSubmatch(block[1], -1) {
 			if len(m) < 2 {
 				continue
 			}
@@ -269,7 +274,7 @@ func parseAmazonProductPage(html []byte) *metadata.Candidate {
 
 		if c.PageCount == 0 && (strings.Contains(text, "Paperback") || strings.Contains(text, "Hardcover") || strings.Contains(text, "pages")) {
 			if sm := amPagesRE.FindStringSubmatch(text); len(sm) >= 2 {
-				if n, err := amParseInt(sm[1]); err == nil && n > 0 {
+				if n, err := strconv.Atoi(sm[1]); err == nil && n > 0 {
 					c.PageCount = n
 				}
 			}
@@ -326,16 +331,4 @@ func amStripText(s string) string {
 	).Replace(s)
 	s = amWSRE.ReplaceAllString(s, " ")
 	return strings.TrimSpace(s)
-}
-
-// amParseInt is a tiny strconv.Atoi wrapper that keeps the parser readable.
-func amParseInt(s string) (int, error) {
-	n := 0
-	for _, r := range s {
-		if r < '0' || r > '9' {
-			return 0, fmt.Errorf("not a number: %q", s)
-		}
-		n = n*10 + int(r-'0')
-	}
-	return n, nil
 }
