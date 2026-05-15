@@ -100,7 +100,7 @@ func (a *Amazon) Enabled(cfg map[string]bool) bool { return cfg[amazonID] }
 
 // amazonHostFor returns the host root for the given region.
 // Test override: if baseURL is not the production URL, return it verbatim
-// (mirrors the storytel pattern in audiobooksdb).
+// (mirrors the storytel pattern in local audiobooks).
 func (a *Amazon) amazonHostFor(region string) string {
 	if a.baseURL != amazonBaseURL {
 		return a.baseURL
