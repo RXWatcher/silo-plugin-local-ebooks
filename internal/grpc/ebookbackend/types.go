@@ -1,7 +1,7 @@
 // Package ebookbackend implements the ebook_backend.v1 contract HTTP surface
-// backed by the local Postgres ebook store. Response shapes mirror the
-// bookwarehouse-ebook plugin's catalog contract so downstream consumers can
-// treat both backends as interchangeable.
+// backed by the local Postgres ebook store. Response shapes follow the shared
+// ebook backend catalog contract so downstream consumers can treat compatible
+// providers as interchangeable.
 package ebookbackend
 
 // Book is the summary entry returned by /catalog list endpoints.

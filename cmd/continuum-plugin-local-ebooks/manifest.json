@@ -7,7 +7,13 @@
   "capabilities": [
     {"type": "ebook_backend.v1", "id": "local_ebooks",
      "display_name": "Local Ebooks Library",
-     "description": "Scans local ebook, document, and future comic libraries and exposes them to the Ebooks portal."},
+     "description": "Scans local ebook, document, and future comic libraries and exposes them to the Ebooks portal.",
+     "metadata": {
+       "ebook_roles": ["library_source"],
+       "supports_catalog": true,
+       "supports_requests": false,
+       "supports_auto_monitoring": false
+     }},
     {
       "type": "metadata_provider.v1",
       "id": "local_ebooks_meta",
