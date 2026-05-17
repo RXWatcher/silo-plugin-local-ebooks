@@ -158,12 +158,12 @@ func main() {
 		st := store.New(p)
 
 		for _, lib := range cfg.Libraries {
-			if _, err := st.UpsertLibraryPathConfig(ctx, store.LibraryPathConfig{
+			if err := st.SeedLibraryPath(ctx, store.LibraryPathConfig{
 				Path:      lib.Path,
 				Name:      lib.Name,
 				MediaType: lib.MediaType,
 			}); err != nil {
-				logger.Warn("upsert library_path", "path", lib.Path, "err", err)
+				logger.Warn("seed library_path", "path", lib.Path, "err", err)
 			}
 		}
 
