@@ -34,8 +34,9 @@
     }
   ],
   "http_routes": [
-    {"id": "api",       "method": "*",   "path": "/api/v1/*", "access": "authenticated"},
-    {"id": "admin",     "method": "*",   "path": "/admin/*",  "access": "admin"}
+    {"id": "assets", "method": "GET", "path": "/assets/*", "access": "public"},
+    {"id": "api",    "method": "*",   "path": "/api/v1/*", "access": "authenticated"},
+    {"id": "admin",  "method": "*",   "path": "/admin/*",  "access": "admin", "navigable": true, "navigation_label": "Local Ebooks", "navigation_kind": "admin"}
   ],
   "global_config_schema": [
     {

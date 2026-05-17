@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	goruntime "runtime"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -33,6 +34,7 @@ import (
 	"github.com/ContinuumApp/continuum-plugin-local-ebooks/internal/scheduler"
 	"github.com/ContinuumApp/continuum-plugin-local-ebooks/internal/server"
 	"github.com/ContinuumApp/continuum-plugin-local-ebooks/internal/store"
+	web "github.com/ContinuumApp/continuum-plugin-local-ebooks/web"
 )
 
 //go:embed manifest.json
@@ -265,6 +267,31 @@ func main() {
 			},
 			ScanOne: runScanOne,
 		})
+
+		webFS := web.FS()
+		fileSrv := http.FileServer(webFS)
+		mux.Handle("GET /assets/", fileSrv)
+		mux.HandleFunc("GET /admin/", func(w http.ResponseWriter, r *http.Request) {
+			// Asset requests under /admin/assets/ map to the bundle root.
+			p := strings.TrimPrefix(r.URL.Path, "/admin")
+			if strings.HasPrefix(p, "/assets/") {
+				r2 := r.Clone(r.Context())
+				r2.URL.Path = p
+				fileSrv.ServeHTTP(w, r2)
+				return
+			}
+			// SPA entrypoint for every other /admin* path.
+			f, err := webFS.Open("index.html")
+			if err != nil {
+				http.Error(w, "ui not built", http.StatusInternalServerError)
+				return
+			}
+			_ = f.Close()
+			r2 := r.Clone(r.Context())
+			r2.URL.Path = "/index.html"
+			fileSrv.ServeHTTP(w, r2)
+		})
+
 		httpSrv.SetHandler(mux)
 
 		storePtr.Store(st)
