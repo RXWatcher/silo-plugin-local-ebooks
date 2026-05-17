@@ -85,7 +85,7 @@ type CatalogStats struct {
 }
 
 // ErrNotFound is returned when a requested row does not exist.
-var ErrNotFound = errors.New("ebook not found")
+var ErrNotFound = errors.New("not found")
 
 // normalizeLimit clamps a requested limit to [1, 200] with default 50.
 func normalizeLimit(n int) int {
