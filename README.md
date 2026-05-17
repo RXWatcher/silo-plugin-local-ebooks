@@ -1,109 +1,73 @@
-# continuum-plugin-local-ebooks
+# Local Ebooks for Continuum
 
-Local-filesystem ebook backend for Continuum. Scans a directory tree of ebook files and exposes them to the ebooks portal via the `ebook_backend.v1` advertised capability. Pure-Go format parsers — no Calibre or external CLI dependencies at runtime.
+`continuum.local-ebooks` scans local ebook and document folders and exposes
+them to the Continuum Ebooks portal as an `ebook_backend.v1` source. It is the
+right backend when EPUB, PDF, comic, or document files live on disk next to the
+Continuum deployment.
 
-The plugin also advertises the `metadata_provider.v1` capability and bundles fifteen external sources.
+The user-facing web app, OPDS/Kobo/Kindle integrations, request workflow, and
+cache management come from `continuum.ebooks`; this plugin owns local library
+scanning, metadata, cover data, and file access.
 
-## What it does
+## Features
 
-- Walks one or more configured library paths looking for ebook files (EPUB, PDF, MOBI, AZW, AZW3, FB2).
-- Extracts title, authors, series, ISBN/ASIN, language, publication year, publisher, identifiers, and embedded cover art from each file. Files on disk are **never modified**.
-- Serves catalog browsing, cover art (with thumb/medium resize), and ebook file delivery to the ebooks portal via gRPC + HTTP.
-- Acts as a metadata aggregator over 15 external sources via `metadata_provider.v1`.
-
-## What it does NOT do
-
-- It does not modify your files. No tag rewrites, no moves, no renames.
-- It does not accept book requests. A local backend cannot acquire new content — the ebooks portal handles request routing through other backends.
-- It does not perform OCR or extract full-text content. Only metadata embedded in container headers is read.
-
-## Capabilities
-
-| Capability | Notes |
-|---|---|
-| `ebook_backend.v1` | Catalog, search, cover art (with resize), ebook file delivery. |
-| `metadata_provider.v1` | Aggregator over 15 sources (see below). |
-| `scheduled_task.v1` (`library_scan`) | Periodic rescan of `library_paths`. |
-| `scheduled_task.v1` (`metadata_enrichment_worker`) | Drains the enrichment queue (1m). |
-
-## Format coverage
-
-| Format | Metadata source | Cover |
-|--------|------------------|-------|
-| EPUB | OPF package document (Dublin Core) | manifest item or sidecar |
-| PDF | PDF info dictionary + XMP | sidecar only (no first-page render) |
-| MOBI | PalmDOC + EXTH header | EXTH record 201 or sidecar |
-| AZW / AZW3 | EXTH header (MOBI / KF8) | EXTH record 201 or sidecar |
-| FB2 | `<description><title-info>` XML | inline base64 binary |
-
-Calibre series (`calibre:series` / `calibre:series_index`) is read from EPUB OPF when present.
-
-## Metadata sources
-
-Three require API keys; the rest work out of the box (several rely on HTML scraping and are best-effort).
-
-| Source ID | Service | API key |
-|-----------|---------|---------|
-| `openlibrary` | Open Library | none |
-| `googlebooks` | Google Books | `googlebooks_api_key` |
-| `isbndb` | ISBNdb | `isbndb_api_key` |
-| `hardcover` | Hardcover (GraphQL) | `hardcover_api_key` |
-| `goodreads` | Goodreads (HTML scrape) | none — best-effort |
-| `amazon` | Amazon (HTML scrape) | none — best-effort |
-| `annasarchive` | Anna's Archive (HTML scrape) | none |
-| `gutenberg` | Project Gutenberg via Gutendex | none |
-| `bookbrainz` | BookBrainz | none |
-| `fantasticfiction` | Fantastic Fiction (scrape) | none |
-| `isfdb` | ISFDB (scrape) | none |
-| `librarything` | LibraryThing (scrape) | none |
-| `internetarchive` | Internet Archive | none |
-| `worldcat` | WorldCat (scrape) | none — best-effort |
-| `douban` | Douban (Chinese-language) | none — best-effort |
-
-**Trigger model**: gRPC `Search` queries all enabled sources in parallel and aggregates results by confidence. Scan-time enrichment goes through a Postgres-backed queue drained every minute by the `metadata_enrichment_worker` scheduled task. Each pass uses a single source per ebook, cascading by identifier strength: ISBN → ASIN → title+author text query.
-
-**Admin endpoint**: `POST /admin/metadata/backfill` enqueues all unenriched ebooks for re-enrichment.
+- Scans one or more configured local library paths.
+- Supports legacy string paths or object entries with `path`, `name`, and
+  `media_type`.
+- Exposes catalog, search, detail, cover, and file access to the Ebooks portal.
+- Aggregates metadata from OpenLibrary, Google Books, ISBNdb, Hardcover,
+  Goodreads, Amazon, Anna's Archive, Project Gutenberg, BookBrainz,
+  FantasticFiction, ISFDB, LibraryThing, Internet Archive, WorldCat, and
+  Douban.
+- Supports metadata caching, per-source rate limits, and scheduled enrichment.
+- Optional standalone direct catalog access listener.
 
 ## Configuration
 
 | Key | Required | Description |
 |---|---|---|
-| `database_url` | yes | DSN for the `local_ebooks` schema. |
-| `library_paths` | yes | JSON array of absolute filesystem paths. |
-| `standalone_http_listen` | no | Bind a TCP listener for presigned-URL file delivery. Requires `stream_signing_secret`. |
-| `stream_signing_secret` | conditional | 32-byte base64 HMAC, shared with the portal. Required when `standalone_http_listen` is set. |
-| `metadata_sources_enabled` | no | JSON array of source IDs (default: all 15). |
-| `metadata_default_region` | no | ISO country code (default `us`). |
-| `metadata_cache_ttl_days` | no | Positive cache retention (default 30). |
-| `metadata_rate_limit_rps` | no | Per-source RPS (default 5). |
-| `scan_inline_enrich` | no | Run enrichment synchronously after a scan. |
-| `metadata_scan_source` | no | Single source used by the enrichment worker. |
-| `googlebooks_api_key` | conditional | Required to enable Google Books. |
-| `isbndb_api_key` | conditional | Required to enable ISBNdb. |
-| `hardcover_api_key` | conditional | Required to enable Hardcover. |
+| `database_url` | yes | Postgres DSN for the `local_ebooks` schema. |
+| `library_paths` | yes | JSON library paths, either strings or objects with `path`, `name`, and `media_type`. |
+| `standalone_http_listen` | no | Optional listener for direct catalog access. |
+| `stream_signing_secret` | no | Reserved HMAC secret for signed download URLs. |
+| `metadata_sources_enabled` | no | JSON array of metadata source IDs to query. Defaults to all. |
+| `metadata_default_region` | no | Default ISO country code. Defaults to `us`. |
+| `metadata_cache_ttl_days` | no | Positive metadata cache TTL. Defaults to 30 days. |
+| `metadata_rate_limit_rps` | no | Per-source request rate limit. |
+| `scan_inline_enrich` | no | Run enrichment synchronously after each scan. |
+| `metadata_scan_source` | no | Source used by the enrichment worker during scans. |
+| `googlebooks_api_key` | no | Optional Google Books API key. |
+| `isbndb_api_key` | no | Optional ISBNdb API key. |
+| `hardcover_api_key` | no | Optional Hardcover API key. |
 
-## Dependencies
+Example library config:
 
-- Postgres role + `local_ebooks` schema.
-- Mounted filesystem with ebook files.
-- Outbound HTTP access to enabled metadata sources.
-
-## Install
-
-```sql
-CREATE ROLE plugin_local_ebooks LOGIN PASSWORD '<chosen>';
-CREATE SCHEMA local_ebooks AUTHORIZATION plugin_local_ebooks;
+```json
+[
+  {"path": "/srv/ebooks", "name": "Books", "media_type": "book"},
+  {"path": "/srv/comics", "name": "Comics", "media_type": "comics"}
+]
 ```
 
-Configure `database_url` and `library_paths` in the plugin admin UI. See [`docs/operations.md`](docs/operations.md) for the standalone-port + signed-URL setup.
+## Database Setup
 
-## Build & test
+```sql
+CREATE ROLE plugin_local_ebooks WITH LOGIN PASSWORD '<chosen>';
+CREATE SCHEMA local_ebooks AUTHORIZATION plugin_local_ebooks;
+GRANT CONNECT ON DATABASE continuum TO plugin_local_ebooks;
+```
+
+## Portal Integration
+
+1. Mount ebook files into the plugin runtime.
+2. Configure `library_paths`.
+3. Install and configure `continuum.ebooks`.
+4. Select `continuum.local-ebooks` as a source or request provider in the
+   Ebooks portal settings.
+
+## Build And Test
 
 ```bash
 make build
 make test
 ```
-
-## Status
-
-v0.1.0. Functional local-library source; scraping metadata sources remain best-effort.
