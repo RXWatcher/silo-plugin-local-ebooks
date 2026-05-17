@@ -9,6 +9,10 @@ The user-facing web app, OPDS/Kobo/Kindle integrations, request workflow, and
 cache management come from `continuum.ebooks`; this plugin owns local library
 scanning, metadata, cover data, and file access.
 
+## Detailed Operations Docs
+
+- [Setup, debugging, and communication flows](docs/setup-debug-flows.md)
+
 ## Features
 
 - Scans one or more configured local library paths.
