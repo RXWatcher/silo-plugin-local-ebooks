@@ -78,6 +78,14 @@ func MountAdminWithDeps(mux *http.ServeMux, deps AdminDeps) {
 			}
 			writeJSON(w, http.StatusOK, map[string]int64{"queued": n})
 		})
+		mux.HandleFunc("GET /admin/metadata/queue", func(w http.ResponseWriter, r *http.Request) {
+			st, err := deps.Store.MetadataQueueStats(r.Context())
+			if err != nil {
+				writeError(w, http.StatusInternalServerError, err)
+				return
+			}
+			writeJSON(w, http.StatusOK, st)
+		})
 	}
 	if deps.ScanFn != nil {
 		mux.HandleFunc("POST /admin/scan", func(w http.ResponseWriter, r *http.Request) {

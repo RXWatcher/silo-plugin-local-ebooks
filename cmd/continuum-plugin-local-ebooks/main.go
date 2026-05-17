@@ -125,6 +125,51 @@ func main() {
 		return eventID, nil
 	}
 
+	runScanOne := func(ctx context.Context, lpID int64) (int64, error) {
+		scanMu.Lock()
+		defer scanMu.Unlock()
+		st := storePtr.Load()
+		if st == nil {
+			return 0, fmt.Errorf("store not configured")
+		}
+		paths, err := st.ListLibraryPaths(ctx)
+		if err != nil {
+			return 0, err
+		}
+		var target *store.LibraryPath
+		for i := range paths {
+			if paths[i].ID == lpID {
+				target = &paths[i]
+				break
+			}
+		}
+		if target == nil {
+			return 0, fmt.Errorf("library %d not found", lpID)
+		}
+		eventID, err := st.InsertScanEvent(ctx, &lpID)
+		if err != nil {
+			return 0, fmt.Errorf("insert scan_event: %w", err)
+		}
+		res, walkErr := scanner.Walk(ctx, target.Path, target.ID, scanner.Deps{
+			Store:           st,
+			EnrichmentQueue: queuePtr.Load(),
+			Logger:          slogger,
+		})
+		errText := ""
+		if walkErr != nil {
+			errText = walkErr.Error()
+		} else if res.Failed > 0 {
+			errText = fmt.Sprintf("%d file(s) failed to ingest", res.Failed)
+		}
+		if ferr := st.FinishScanEvent(ctx, eventID, res.Added, res.Changed, res.Deleted, errText); ferr != nil {
+			logger.Warn("finish scan_event", "err", ferr)
+		}
+		if walkErr == nil {
+			_ = st.MarkLibraryScanned(ctx, target.ID)
+		}
+		return eventID, walkErr
+	}
+
 	drainWorker := func(ctx context.Context) error {
 		if w := workerPtr.Load(); w != nil {
 			return w.Drain(ctx)
@@ -211,6 +256,14 @@ func main() {
 				}
 				return pluginrt.Config{}
 			},
+		})
+		server.MountLibraryRoutes(mux, server.LibraryDeps{
+			Store: st,
+			DirExists: func(p string) bool {
+				fi, err := os.Stat(p)
+				return err == nil && fi.IsDir()
+			},
+			ScanOne: runScanOne,
 		})
 		httpSrv.SetHandler(mux)
 
