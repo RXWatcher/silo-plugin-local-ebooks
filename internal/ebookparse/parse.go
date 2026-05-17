@@ -9,8 +9,18 @@ import (
 // ErrUnsupportedFormat is returned for file extensions we don't handle.
 var ErrUnsupportedFormat = errors.New("ebookparse: unsupported format")
 
-// Parse dispatches to the right format parser based on the file extension.
+// Parse dispatches to the right format parser based on the file extension,
+// then sanitize-bounds the (untrusted) result before returning it.
 func Parse(path string) (Parsed, error) {
+	p, err := parseByExt(path)
+	if err != nil {
+		return Parsed{}, err
+	}
+	p.sanitize()
+	return p, nil
+}
+
+func parseByExt(path string) (Parsed, error) {
 	ext := strings.ToLower(extOf(path))
 	switch ext {
 	case ".epub":
