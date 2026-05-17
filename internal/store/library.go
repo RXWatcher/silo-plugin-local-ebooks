@@ -96,6 +96,96 @@ func (s *Store) ListLibraryPaths(ctx context.Context) ([]LibraryPath, error) {
 	return out, rows.Err()
 }
 
+// SeedLibraryPath is the non-destructive Configure seed: it creates the row
+// only if the path is absent and never modifies an existing (UI-managed) row.
+func (s *Store) SeedLibraryPath(ctx context.Context, cfg LibraryPathConfig) error {
+	name := cfg.Name
+	if name == "" {
+		name = cfg.Path
+	}
+	mt := cfg.MediaType
+	if mt == "" {
+		mt = "book"
+	}
+	_, err := s.pool.Exec(ctx, `
+		INSERT INTO library_path (path, name, media_type, enabled)
+		VALUES ($1, $2, $3, TRUE)
+		ON CONFLICT (path) DO NOTHING
+	`, cfg.Path, name, mt)
+	return err
+}
+
+// CreateLibrary inserts a new library. Returns ErrDuplicatePath when path
+// already exists (the caller maps it to HTTP 409).
+func (s *Store) CreateLibrary(ctx context.Context, in LibraryInput) (int64, error) {
+	name := in.Name
+	if name == "" {
+		name = in.Path
+	}
+	var id int64
+	err := s.pool.QueryRow(ctx, `
+		INSERT INTO library_path (path, name, media_type, enabled)
+		VALUES ($1, $2, $3, $4)
+		RETURNING id
+	`, in.Path, name, in.MediaType, in.Enabled).Scan(&id)
+	if err != nil && isUniqueViolation(err) {
+		return 0, ErrDuplicatePath
+	}
+	return id, err
+}
+
+// UpdateLibrary mutates name/media_type/enabled (path is immutable).
+// Returns ErrNotFound when no row matches id.
+func (s *Store) UpdateLibrary(ctx context.Context, id int64, u LibraryUpdate) error {
+	tag, err := s.pool.Exec(ctx, `
+		UPDATE library_path
+		   SET name = $2, media_type = $3, enabled = $4, updated_at = now()
+		 WHERE id = $1
+	`, id, u.Name, u.MediaType, u.Enabled)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+// DeleteLibrary removes a library and its derived catalog rows in one
+// transaction (metadata jobs + covers for its ebooks, then ebooks, then the
+// library_path row). On-disk files are untouched. Returns ErrNotFound when
+// no row matches id.
+func (s *Store) DeleteLibrary(ctx context.Context, id int64) error {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	if _, err := tx.Exec(ctx, `
+		DELETE FROM metadata_enrichment_job
+		 WHERE ebook_id IN (SELECT id FROM ebook WHERE library_path_id = $1)
+	`, id); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(ctx, `
+		DELETE FROM cover
+		 WHERE ebook_id IN (SELECT id FROM ebook WHERE library_path_id = $1)
+	`, id); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(ctx, `DELETE FROM ebook WHERE library_path_id = $1`, id); err != nil {
+		return err
+	}
+	tag, err := tx.Exec(ctx, `DELETE FROM library_path WHERE id = $1`, id)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return tx.Commit(ctx)
+}
+
 // MarkLibraryScanned updates last_scanned_at to now().
 func (s *Store) MarkLibraryScanned(ctx context.Context, id int64) error {
 	_, err := s.pool.Exec(ctx, `UPDATE library_path SET last_scanned_at = now() WHERE id = $1`, id)

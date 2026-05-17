@@ -3,14 +3,27 @@ package store
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/ContinuumApp/continuum-plugin-local-ebooks/internal/ebookparse"
 )
+
+// ErrDuplicatePath is returned when an insert would violate the unique path
+// constraint on library_path.
+var ErrDuplicatePath = errors.New("duplicate path")
+
+// isUniqueViolation reports whether err is a Postgres unique-constraint
+// violation (SQLSTATE 23505).
+func isUniqueViolation(err error) bool {
+	var pgErr *pgconn.PgError
+	return errors.As(err, &pgErr) && pgErr.Code == "23505"
+}
 
 // Store wraps a pgxpool. Construct one per process; safe for concurrent use.
 type Store struct {
