@@ -148,7 +148,9 @@ func TestAmazon_HostForRegion(t *testing.T) {
 		{"de", "https://www.amazon.de"},
 		{"jp", "https://www.amazon.co.jp"},
 		{"ca", "https://www.amazon.ca"},
-		{"xx", "https://www.amazon.xx"},
+		// Unknown region must NOT be interpolated into the host (SSRF) —
+		// it falls back to the US host.
+		{"xx", "https://www.amazon.com"},
 	}
 	for _, tc := range cases {
 		if got := a.amazonHostFor(tc.region); got != tc.want {

@@ -133,7 +133,11 @@ func (a *Amazon) amazonHostFor(region string) string {
 	case "in":
 		return "https://www.amazon.in"
 	default:
-		return "https://www.amazon." + region
+		// Never interpolate the (operator-config) region into the host: a
+		// value like "com@169.254.169.254" or "evil.example/" would point
+		// requests at an arbitrary/internal host (SSRF). Unknown region ->
+		// the US host.
+		return "https://www.amazon.com"
 	}
 }
 

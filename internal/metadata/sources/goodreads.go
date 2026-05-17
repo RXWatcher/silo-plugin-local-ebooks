@@ -14,6 +14,9 @@ import (
 const goodreadsID = "goodreads"
 const goodreadsBaseURL = "https://www.goodreads.com"
 
+// grMaxResults caps scraped search rows (matches the package convention).
+const grMaxResults = 10
+
 // numericRE matches a non-empty string of only ASCII digits.
 var numericRE = regexp.MustCompile(`^\d+$`)
 
@@ -287,18 +290,27 @@ func parseGoodreadsNextData(html string) *metadata.Candidate {
 		return nil
 	}
 	var out []metadata.Candidate
-	traverseGoodreadsNextData(data, &out)
+	traverseGoodreadsNextData(data, &out, 0)
 	if len(out) > 0 {
 		return &out[0]
 	}
 	return nil
 }
 
-func traverseGoodreadsNextData(v interface{}, out *[]metadata.Candidate) {
+// maxGoodreadsTraverseDepth bounds recursion when walking the scraped
+// __NEXT_DATA__ JSON tree. The page is attacker-influenceable; an unbounded
+// walk over deeply-nested JSON (~500k levels fits in the 1 MB SoftLimit)
+// grows the goroutine stack until the process fatally panics.
+const maxGoodreadsTraverseDepth = 64
+
+func traverseGoodreadsNextData(v interface{}, out *[]metadata.Candidate, depth int) {
+	if depth > maxGoodreadsTraverseDepth {
+		return
+	}
 	switch val := v.(type) {
 	case []interface{}:
 		for _, item := range val {
-			traverseGoodreadsNextData(item, out)
+			traverseGoodreadsNextData(item, out, depth+1)
 		}
 	case map[string]interface{}:
 		if c := goodreadsNextDataBookToCandidate(val); c != nil {
@@ -306,7 +318,7 @@ func traverseGoodreadsNextData(v interface{}, out *[]metadata.Candidate) {
 			return
 		}
 		for _, child := range val {
-			traverseGoodreadsNextData(child, out)
+			traverseGoodreadsNextData(child, out, depth+1)
 		}
 	}
 }
@@ -397,6 +409,12 @@ func parseGoodreadsSearchPage(html []byte) []metadata.Candidate {
 	titleMatches := grSearchRowRE.FindAllStringSubmatch(s, -1)
 	if len(titleMatches) == 0 {
 		return nil
+	}
+	// Cap result rows like every other scraper in this package
+	// (wc/is/lt/ff/db all use 10): each Candidate aliases the full body via
+	// Raw, so an unbounded hostile result page amplifies memory by row count.
+	if len(titleMatches) > grMaxResults {
+		titleMatches = titleMatches[:grMaxResults]
 	}
 
 	authorMatches := grAuthorRE.FindAllStringSubmatch(s, -1)
