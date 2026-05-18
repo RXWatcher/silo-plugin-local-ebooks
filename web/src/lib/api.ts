@@ -10,7 +10,7 @@ let theme: string | null = null;
 (function capture() {
   const p = new URLSearchParams(window.location.search);
   const t = p.get("token");
-  const th = p.get("theme");
+  const th = p.get("theme") ?? sessionStorage.getItem("continuum-theme");
   if (th) theme = th;
   if (t) {
     token = t;
