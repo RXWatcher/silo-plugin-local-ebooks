@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { writeFileSync } from 'node:fs';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
@@ -9,7 +10,16 @@ import tailwindcss from '@tailwindcss/vite';
 // regardless of installation ID.
 export default defineConfig({
   base: './',
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    {
+      name: 'preserve-dist-gitkeep',
+      closeBundle() {
+        writeFileSync(path.resolve(__dirname, 'dist/.gitkeep'), '\n');
+      },
+    },
+  ],
   resolve: {
     alias: { '@': path.resolve(__dirname, './src') },
   },
