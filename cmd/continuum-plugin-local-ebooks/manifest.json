@@ -1,31 +1,46 @@
 {
   "plugin_id": "continuum.local-ebooks",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "checksum": "e47ca0e1886aa9e3312884b7d16480618c60202b7118239f6838b2ffe2cdd4d7",
   "continuum_api_version": "v1",
-  "supported_platforms": [{"os": "linux", "arch": "amd64"}],
+  "supported_platforms": [
+    {
+      "os": "linux",
+      "arch": "amd64"
+    }
+  ],
   "capabilities": [
-    {"type": "ebook_backend.v1", "id": "local_ebooks",
-     "display_name": "Local Ebooks Library",
-     "description": "Scans local ebook, document, and future comic libraries and exposes them to the Ebooks portal.",
-     "metadata": {
-       "ebook_roles": ["library_source"],
-       "supports_catalog": true,
-       "supports_requests": false,
-       "supports_auto_monitoring": false
-     }},
+    {
+      "type": "ebook_backend.v1",
+      "id": "local_ebooks",
+      "display_name": "Local Ebooks Library",
+      "description": "Scans local ebook, document, and future comic libraries and exposes them to the Ebooks portal.",
+      "metadata": {
+        "ebook_roles": [
+          "library_source"
+        ],
+        "supports_catalog": true,
+        "supports_requests": false,
+        "supports_auto_monitoring": false
+      }
+    },
     {
       "type": "metadata_provider.v1",
       "id": "local_ebooks_meta",
       "display_name": "Local Ebooks metadata aggregator",
       "description": "Searches OpenLibrary, GoogleBooks, ISBNdb, Hardcover, Goodreads, Amazon, Anna's Archive, Project Gutenberg, BookBrainz, FantasticFiction, ISFDB, LibraryThing, Internet Archive, WorldCat, and Douban.",
       "metadata": {
-        "default_priority": {"book": 1}
+        "default_priority": {
+          "book": 1
+        }
       }
     },
-    {"type": "scheduled_task.v1", "id": "library_scan",
-     "display_name": "Periodic library rescan",
-     "cron": "0 */6 * * *"},
+    {
+      "type": "scheduled_task.v1",
+      "id": "library_scan",
+      "display_name": "Periodic library rescan",
+      "cron": "0 */6 * * *"
+    },
     {
       "type": "scheduled_task.v1",
       "id": "metadata_enrichment_worker",
@@ -34,9 +49,27 @@
     }
   ],
   "http_routes": [
-    {"id": "assets", "method": "GET", "path": "/assets/*", "access": "public"},
-    {"id": "api",    "method": "*",   "path": "/api/v1/*", "access": "authenticated"},
-    {"id": "admin",  "method": "*",   "path": "/admin/*",  "access": "admin", "navigable": true, "navigation_label": "Local Ebooks", "navigation_kind": "admin"}
+    {
+      "id": "assets",
+      "method": "GET",
+      "path": "/assets/*",
+      "access": "public"
+    },
+    {
+      "id": "api",
+      "method": "*",
+      "path": "/api/v1/*",
+      "access": "authenticated"
+    },
+    {
+      "id": "admin",
+      "method": "*",
+      "path": "/admin/*",
+      "access": "admin",
+      "navigable": true,
+      "navigation_label": "Local Ebooks",
+      "navigation_kind": "admin"
+    }
   ],
   "global_config_schema": [
     {
@@ -45,7 +78,17 @@
       "description": "DSN for the dedicated Local Ebooks schema.",
       "json_schema": "{\"type\":\"object\",\"properties\":{\"value\":{\"type\":\"string\"}},\"required\":[\"value\"]}",
       "required": true,
-      "admin_form": {"fields": [{"key": "value", "label": "Connection URL", "control": "ADMIN_FORM_CONTROL_PASSWORD", "required": true, "secret": true}]}
+      "admin_form": {
+        "fields": [
+          {
+            "key": "value",
+            "label": "Connection URL",
+            "control": "ADMIN_FORM_CONTROL_PASSWORD",
+            "required": true,
+            "secret": true
+          }
+        ]
+      }
     },
     {
       "key": "library_paths",
@@ -53,84 +96,185 @@
       "description": "Absolute filesystem paths to scan. Use strings for legacy config, or objects with path/name/media_type for multiple libraries, e.g. [{\"path\":\"/srv/ebooks\",\"name\":\"Books\",\"media_type\":\"book\"},{\"path\":\"/srv/comics\",\"name\":\"Comics\",\"media_type\":\"comics\"}].",
       "json_schema": "{\"type\":\"object\",\"properties\":{\"value\":{\"type\":\"array\",\"items\":{\"oneOf\":[{\"type\":\"string\"},{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"media_type\":{\"type\":\"string\",\"enum\":[\"book\",\"comics\",\"manga\",\"documents\"]}},\"required\":[\"path\"]}]}}}}",
       "required": true,
-      "admin_form": {"fields": [{"key": "value", "label": "JSON array of paths or library objects", "control": "ADMIN_FORM_CONTROL_TEXT", "required": true}]}
+      "admin_form": {
+        "fields": [
+          {
+            "key": "value",
+            "label": "JSON array of paths or library objects",
+            "control": "ADMIN_FORM_CONTROL_TEXT",
+            "required": true
+          }
+        ]
+      }
     },
     {
       "key": "standalone_http_listen",
       "title": "Standalone HTTP listen address",
       "description": "Optional. Bind a TCP listener (e.g. ':7880' or '127.0.0.1:7880') for direct catalog access. Leave empty to disable.",
       "json_schema": "{\"type\":\"object\",\"properties\":{\"value\":{\"type\":\"string\"}}}",
-      "admin_form": {"fields": [{"key": "value", "label": "Listen address", "control": "ADMIN_FORM_CONTROL_TEXT"}]}
+      "admin_form": {
+        "fields": [
+          {
+            "key": "value",
+            "label": "Listen address",
+            "control": "ADMIN_FORM_CONTROL_TEXT"
+          }
+        ]
+      }
     },
     {
       "key": "stream_signing_secret",
       "title": "Stream signing secret (HMAC)",
       "description": "32-byte base64-encoded shared secret used to sign presigned download URLs. Reserved for future use.",
       "json_schema": "{\"type\":\"object\",\"properties\":{\"value\":{\"type\":\"string\"}}}",
-      "admin_form": {"fields": [{"key": "value", "label": "Base64 secret", "control": "ADMIN_FORM_CONTROL_PASSWORD", "secret": true}]}
+      "admin_form": {
+        "fields": [
+          {
+            "key": "value",
+            "label": "Base64 secret",
+            "control": "ADMIN_FORM_CONTROL_PASSWORD",
+            "secret": true
+          }
+        ]
+      }
     },
     {
       "key": "metadata_sources_enabled",
       "title": "Enabled metadata sources",
       "description": "JSON array of source IDs to query. Defaults to all sources.",
       "json_schema": "{\"type\":\"object\",\"properties\":{\"value\":{\"type\":\"array\",\"items\":{\"type\":\"string\"},\"default\":[\"openlibrary\",\"googlebooks\",\"isbndb\",\"hardcover\",\"goodreads\",\"amazon\",\"annasarchive\",\"gutenberg\",\"bookbrainz\",\"fantasticfiction\",\"isfdb\",\"librarything\",\"internetarchive\",\"worldcat\",\"douban\"]}}}",
-      "admin_form": {"fields": [{"key": "value", "label": "Source IDs (JSON array)", "control": "ADMIN_FORM_CONTROL_TEXT"}]}
+      "admin_form": {
+        "fields": [
+          {
+            "key": "value",
+            "label": "Source IDs (JSON array)",
+            "control": "ADMIN_FORM_CONTROL_TEXT"
+          }
+        ]
+      }
     },
     {
       "key": "metadata_default_region",
       "title": "Default metadata region",
       "description": "ISO country code used when no per-request region is supplied. Defaults to \"us\".",
       "json_schema": "{\"type\":\"object\",\"properties\":{\"value\":{\"type\":\"string\",\"default\":\"us\"}}}",
-      "admin_form": {"fields": [{"key": "value", "label": "Region code", "control": "ADMIN_FORM_CONTROL_TEXT"}]}
+      "admin_form": {
+        "fields": [
+          {
+            "key": "value",
+            "label": "Region code",
+            "control": "ADMIN_FORM_CONTROL_TEXT"
+          }
+        ]
+      }
     },
     {
       "key": "metadata_cache_ttl_days",
       "title": "Metadata cache TTL (days)",
       "description": "Number of days a positive metadata cache entry is retained. Defaults to 30.",
       "json_schema": "{\"type\":\"object\",\"properties\":{\"value\":{\"type\":\"integer\",\"default\":30}}}",
-      "admin_form": {"fields": [{"key": "value", "label": "TTL in days", "control": "ADMIN_FORM_CONTROL_TEXT"}]}
+      "admin_form": {
+        "fields": [
+          {
+            "key": "value",
+            "label": "TTL in days",
+            "control": "ADMIN_FORM_CONTROL_TEXT"
+          }
+        ]
+      }
     },
     {
       "key": "metadata_rate_limit_rps",
       "title": "Metadata source rate limit (RPS)",
       "description": "Per-source requests-per-second budget for the aggregator. Defaults to 5.",
       "json_schema": "{\"type\":\"object\",\"properties\":{\"value\":{\"type\":\"integer\",\"default\":5}}}",
-      "admin_form": {"fields": [{"key": "value", "label": "Requests per second", "control": "ADMIN_FORM_CONTROL_TEXT"}]}
+      "admin_form": {
+        "fields": [
+          {
+            "key": "value",
+            "label": "Requests per second",
+            "control": "ADMIN_FORM_CONTROL_TEXT"
+          }
+        ]
+      }
     },
     {
       "key": "scan_inline_enrich",
       "title": "Inline enrichment on scan",
       "description": "When true, metadata enrichment runs synchronously after each library scan completes. Defaults to false.",
       "json_schema": "{\"type\":\"object\",\"properties\":{\"value\":{\"type\":\"boolean\",\"default\":false}}}",
-      "admin_form": {"fields": [{"key": "value", "label": "Enable inline enrichment", "control": "ADMIN_FORM_CONTROL_CHECKBOX"}]}
+      "admin_form": {
+        "fields": [
+          {
+            "key": "value",
+            "label": "Enable inline enrichment",
+            "control": "ADMIN_FORM_CONTROL_CHECKBOX"
+          }
+        ]
+      }
     },
     {
       "key": "metadata_scan_source",
       "title": "Scan enrichment source",
       "description": "Source ID used by the enrichment worker during scans. Defaults to \"openlibrary\".",
       "json_schema": "{\"type\":\"object\",\"properties\":{\"value\":{\"type\":\"string\",\"default\":\"openlibrary\"}}}",
-      "admin_form": {"fields": [{"key": "value", "label": "Source ID", "control": "ADMIN_FORM_CONTROL_TEXT"}]}
+      "admin_form": {
+        "fields": [
+          {
+            "key": "value",
+            "label": "Source ID",
+            "control": "ADMIN_FORM_CONTROL_TEXT"
+          }
+        ]
+      }
     },
     {
       "key": "googlebooks_api_key",
       "title": "Google Books API key",
       "description": "Optional API key for the Google Books metadata source.",
       "json_schema": "{\"type\":\"object\",\"properties\":{\"value\":{\"type\":\"string\"}}}",
-      "admin_form": {"fields": [{"key": "value", "label": "API key", "control": "ADMIN_FORM_CONTROL_PASSWORD", "secret": true}]}
+      "admin_form": {
+        "fields": [
+          {
+            "key": "value",
+            "label": "API key",
+            "control": "ADMIN_FORM_CONTROL_PASSWORD",
+            "secret": true
+          }
+        ]
+      }
     },
     {
       "key": "isbndb_api_key",
       "title": "ISBNdb API key",
       "description": "Optional API key for the ISBNdb metadata source.",
       "json_schema": "{\"type\":\"object\",\"properties\":{\"value\":{\"type\":\"string\"}}}",
-      "admin_form": {"fields": [{"key": "value", "label": "API key", "control": "ADMIN_FORM_CONTROL_PASSWORD", "secret": true}]}
+      "admin_form": {
+        "fields": [
+          {
+            "key": "value",
+            "label": "API key",
+            "control": "ADMIN_FORM_CONTROL_PASSWORD",
+            "secret": true
+          }
+        ]
+      }
     },
     {
       "key": "hardcover_api_key",
       "title": "Hardcover API key",
       "description": "Optional API key for the Hardcover metadata source.",
       "json_schema": "{\"type\":\"object\",\"properties\":{\"value\":{\"type\":\"string\"}}}",
-      "admin_form": {"fields": [{"key": "value", "label": "API key", "control": "ADMIN_FORM_CONTROL_PASSWORD", "secret": true}]}
+      "admin_form": {
+        "fields": [
+          {
+            "key": "value",
+            "label": "API key",
+            "control": "ADMIN_FORM_CONTROL_PASSWORD",
+            "secret": true
+          }
+        ]
+      }
     }
   ]
 }
