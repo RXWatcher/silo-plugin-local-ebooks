@@ -1,7 +1,7 @@
 {
   "plugin_id": "continuum.local-ebooks",
   "version": "1.0.1",
-  "checksum": "e47ca0e1886aa9e3312884b7d16480618c60202b7118239f6838b2ffe2cdd4d7",
+  "checksum": "__CHECKSUM__",
   "continuum_api_version": "v1",
   "supported_platforms": [
     {
