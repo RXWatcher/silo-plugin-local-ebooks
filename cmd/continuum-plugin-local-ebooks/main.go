@@ -297,7 +297,7 @@ func main() {
 				return
 			}
 			body = orderStylesBeforeModules(body)
-			body = rewriteAdminAssetPaths(body)
+			body = rewriteAdminAssetPaths(body, r.URL.Path)
 			body = injectAdminTheme(body, r)
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
 			w.WriteHeader(http.StatusOK)
@@ -378,11 +378,19 @@ func loadManifest() (*pluginv1.PluginManifest, error) {
 	return manifest, nil
 }
 
-func rewriteAdminAssetPaths(body []byte) []byte {
+func rewriteAdminAssetPaths(body []byte, requestPath string) []byte {
 	html := string(body)
-	html = strings.ReplaceAll(html, `src="./assets/`, `src="../assets/`)
-	html = strings.ReplaceAll(html, `href="./assets/`, `href="../assets/`)
+	prefix := adminAssetPrefix(requestPath)
+	html = strings.ReplaceAll(html, `src="./assets/`, `src="`+prefix)
+	html = strings.ReplaceAll(html, `href="./assets/`, `href="`+prefix)
 	return []byte(html)
+}
+
+func adminAssetPrefix(requestPath string) string {
+	if requestPath == "/admin" || requestPath == "/" {
+		return "assets/"
+	}
+	return "../assets/"
 }
 
 func injectAdminTheme(body []byte, r *http.Request) []byte {
