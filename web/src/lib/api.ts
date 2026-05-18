@@ -67,6 +67,15 @@ export type ScanEvent = {
   books_deleted: number;
   error_text?: string;
 };
+export type FilesystemEntry = {
+  name: string;
+  path: string;
+};
+export type FilesystemBrowseResponse = {
+  path: string;
+  parent: string;
+  entries: FilesystemEntry[];
+};
 
 export const listLibraries = () =>
   call<{ items: Library[] }>("GET", "/libraries");
@@ -84,6 +93,11 @@ export const deleteLibrary = (id: number) =>
   call("DELETE", `/libraries/${id}`);
 export const scanLibrary = (id: number) =>
   call<{ scan_event_id: number }>("POST", `/libraries/${id}/scan`);
+export const browseFilesystem = (path: string) =>
+  call<FilesystemBrowseResponse>(
+    "GET",
+    `/filesystem/browse?${new URLSearchParams({ path }).toString()}`,
+  );
 export const scanAll = () =>
   call<{ scan_event_id: number }>("POST", "/scan");
 export const listScans = () =>

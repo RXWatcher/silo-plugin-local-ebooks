@@ -6,6 +6,9 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/ContinuumApp/continuum-plugin-local-ebooks/internal/store"
@@ -118,5 +121,43 @@ func TestUpdateLibrary_NotFoundIs404(t *testing.T) {
 	mux.ServeHTTP(rec, httptest.NewRequest("PATCH", "/admin/libraries/1", bytes.NewReader(body)))
 	if rec.Code != 404 {
 		t.Fatalf("status = %d, want 404", rec.Code)
+	}
+}
+
+func TestFilesystemBrowseListsDirectories(t *testing.T) {
+	root := t.TempDir()
+	if err := os.Mkdir(filepath.Join(root, "Ebooks"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "book.epub"), []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	mux := newLibMux(&fakeLibStore{})
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/admin/filesystem/browse?path="+root, nil))
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200 (%s)", rec.Code, rec.Body.String())
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, `"path":"`+root+`"`) {
+		t.Fatalf("body missing current path: %s", body)
+	}
+	if !strings.Contains(body, `"name":"Ebooks"`) {
+		t.Fatalf("body missing child directory: %s", body)
+	}
+	if strings.Contains(body, "book.epub") {
+		t.Fatalf("body included file entry: %s", body)
+	}
+}
+
+func TestFilesystemBrowseRejectsRelativePath(t *testing.T) {
+	mux := newLibMux(&fakeLibStore{})
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/admin/filesystem/browse?path=relative", nil))
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want 400 (%s)", rec.Code, rec.Body.String())
 	}
 }
