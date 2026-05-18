@@ -1,6 +1,6 @@
 {
   "plugin_id": "continuum.local-ebooks",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "checksum": "e47ca0e1886aa9e3312884b7d16480618c60202b7118239f6838b2ffe2cdd4d7",
   "continuum_api_version": "v1",
   "supported_platforms": [
@@ -46,6 +46,12 @@
       "id": "metadata_enrichment_worker",
       "display_name": "Metadata enrichment worker",
       "cron": "* * * * *"
+    },
+    {
+      "type": "http_routes.v1",
+      "id": "admin",
+      "display_name": "Local Ebooks Admin",
+      "description": "Admin UI for local ebook libraries, scans, metadata enrichment, and diagnostics."
     }
   ],
   "http_routes": [
@@ -62,13 +68,19 @@
       "access": "authenticated"
     },
     {
-      "id": "admin",
-      "method": "*",
-      "path": "/admin/*",
+      "id": "admin_root",
+      "method": "GET",
+      "path": "/admin",
       "access": "admin",
       "navigable": true,
       "navigation_label": "Local Ebooks",
       "navigation_kind": "admin"
+    },
+    {
+      "id": "admin_sub",
+      "method": "*",
+      "path": "/admin/*",
+      "access": "admin"
     }
   ],
   "global_config_schema": [

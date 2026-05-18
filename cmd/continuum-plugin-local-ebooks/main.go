@@ -7,6 +7,7 @@ import (
 	_ "embed"
 	"encoding/hex"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"os"
@@ -274,7 +275,7 @@ func main() {
 		webFS := web.FS()
 		fileSrv := http.FileServer(webFS)
 		mux.Handle("GET /assets/", fileSrv)
-		mux.HandleFunc("GET /admin/", func(w http.ResponseWriter, r *http.Request) {
+		serveAdmin := func(w http.ResponseWriter, r *http.Request) {
 			// Asset requests under /admin/assets/ map to the bundle root.
 			p := strings.TrimPrefix(r.URL.Path, "/admin")
 			if strings.HasPrefix(p, "/assets/") {
@@ -289,11 +290,20 @@ func main() {
 				http.Error(w, "ui not built", http.StatusInternalServerError)
 				return
 			}
-			_ = f.Close()
-			r2 := r.Clone(r.Context())
-			r2.URL.Path = "/index.html"
-			fileSrv.ServeHTTP(w, r2)
-		})
+			defer f.Close()
+			body, err := io.ReadAll(f)
+			if err != nil {
+				http.Error(w, "ui not built", http.StatusInternalServerError)
+				return
+			}
+			body = orderStylesBeforeModules(body)
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write(body)
+		}
+		mux.HandleFunc("GET /", serveAdmin)
+		mux.HandleFunc("GET /admin", serveAdmin)
+		mux.HandleFunc("GET /admin/", serveAdmin)
 
 		httpSrv.SetHandler(mux)
 
@@ -364,4 +374,28 @@ func loadManifest() (*pluginv1.PluginManifest, error) {
 		}
 	}
 	return manifest, nil
+}
+
+func orderStylesBeforeModules(body []byte) []byte {
+	html := string(body)
+	scriptStart := strings.Index(html, `  <script type="module"`)
+	linkStart := strings.Index(html, `  <link rel="stylesheet"`)
+	if scriptStart < 0 || linkStart < 0 || linkStart < scriptStart {
+		return body
+	}
+	scriptEnd := strings.Index(html[scriptStart:], "</script>")
+	if scriptEnd < 0 {
+		return body
+	}
+	scriptEnd += scriptStart + len("</script>")
+	linkEnd := strings.Index(html[linkStart:], ">")
+	if linkEnd < 0 {
+		return body
+	}
+	linkEnd += linkStart + 1
+
+	script := html[scriptStart:scriptEnd]
+	link := html[linkStart:linkEnd]
+	html = html[:scriptStart] + link + "\n" + script + html[scriptEnd:linkStart] + html[linkEnd:]
+	return []byte(html)
 }

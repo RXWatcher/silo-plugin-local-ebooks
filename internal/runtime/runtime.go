@@ -104,9 +104,6 @@ func (s *Server) Configure(_ context.Context, req *pluginv1.ConfigureRequest) (*
 	if cfg.DatabaseURL == "" {
 		return nil, errors.New("database_url is required")
 	}
-	if len(cfg.LibraryPaths) == 0 {
-		return nil, errors.New("library_paths is required (non-empty array)")
-	}
 	if len(cfg.Libraries) == 0 {
 		for _, path := range cfg.LibraryPaths {
 			cfg.Libraries = append(cfg.Libraries, LibraryConfig{Path: path})
