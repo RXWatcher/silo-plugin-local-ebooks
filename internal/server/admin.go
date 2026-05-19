@@ -26,11 +26,18 @@ type AdminStore interface {
 	MetadataQueueStats(ctx context.Context) (store.MetadataQueueStats, error)
 }
 
+type ConfigStore interface {
+	GetAppConfig(ctx context.Context) (store.AppConfig, error)
+	PutAppConfig(ctx context.Context, cfg store.AppConfig) error
+}
+
 // AdminDeps registers operational endpoints for status, scans, and enrichment.
 type AdminDeps struct {
 	Store          AdminStore
+	ConfigStore    ConfigStore
 	ScanFn         func(context.Context) (int64, error)
 	ConfigSnapshot func() pluginrt.Config
+	OnConfigUpdate func(store.AppConfig)
 }
 
 // MountAdminWithDeps registers the complete admin surface.
@@ -63,6 +70,36 @@ func MountAdminWithDeps(mux *http.ServeMux, deps AdminDeps) {
 				return
 			}
 			writeJSON(w, http.StatusOK, st)
+		})
+	}
+	if deps.ConfigStore != nil {
+		mux.HandleFunc("GET /admin/config", func(w http.ResponseWriter, r *http.Request) {
+			cfg, err := deps.ConfigStore.GetAppConfig(r.Context())
+			if err != nil {
+				writeError(w, http.StatusInternalServerError, err)
+				return
+			}
+			writeJSON(w, http.StatusOK, cfg)
+		})
+		mux.HandleFunc("PUT /admin/config", func(w http.ResponseWriter, r *http.Request) {
+			var cfg store.AppConfig
+			if err := json.NewDecoder(r.Body).Decode(&cfg); err != nil {
+				writeError(w, http.StatusBadRequest, err)
+				return
+			}
+			cfg = cfg.WithDefaults()
+			if err := cfg.Validate(); err != nil {
+				writeError(w, http.StatusBadRequest, err)
+				return
+			}
+			if err := deps.ConfigStore.PutAppConfig(r.Context(), cfg); err != nil {
+				writeError(w, http.StatusInternalServerError, err)
+				return
+			}
+			if deps.OnConfigUpdate != nil {
+				deps.OnConfigUpdate(cfg)
+			}
+			writeJSON(w, http.StatusOK, cfg)
 		})
 	}
 	if deps.ScanFn != nil {
@@ -111,9 +148,11 @@ func handleDiagnostics(w http.ResponseWriter, r *http.Request, deps AdminDeps) {
 		return
 	}
 
-	cfg := pluginrt.Config{}
-	if deps.ConfigSnapshot != nil {
-		cfg = deps.ConfigSnapshot()
+	appCfg := store.DefaultAppConfig()
+	if deps.ConfigStore != nil {
+		if cfg, err := deps.ConfigStore.GetAppConfig(ctx); err == nil {
+			appCfg = cfg
+		}
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"plugin_id":    "continuum.local-ebooks",
@@ -124,12 +163,12 @@ func handleDiagnostics(w http.ResponseWriter, r *http.Request, deps AdminDeps) {
 		"metadata":     queue,
 		"recent_scans": scans,
 		"configuration": map[string]any{
-			"metadata_sources_enabled": len(cfg.MetadataSourcesEnabled),
-			"metadata_default_region":  cfg.MetadataDefaultRegion,
-			"metadata_scan_source":     cfg.MetadataScanSource,
-			"metadata_cache_ttl_days":  cfg.MetadataCacheTTLDays,
-			"metadata_rate_limit_rps":  cfg.MetadataRateLimitRPS,
-			"scan_inline_enrich":       cfg.ScanInlineEnrich,
+			"metadata_sources_enabled": len(appCfg.MetadataSourcesEnabled),
+			"metadata_default_region":  appCfg.MetadataDefaultRegion,
+			"metadata_scan_source":     appCfg.MetadataScanSource,
+			"metadata_cache_ttl_days":  appCfg.MetadataCacheTTLDays,
+			"metadata_rate_limit_rps":  appCfg.MetadataRateLimitRPS,
+			"scan_inline_enrich":       appCfg.ScanInlineEnrich,
 		},
 		"features": []string{
 			"multi_library",

@@ -30,8 +30,14 @@ export function getCachedTheme(): string | null {
   return theme;
 }
 
-async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
+async function call<T>(
+  method: string,
+  path: string,
+  body?: unknown,
+): Promise<T> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
   if (token) headers["Authorization"] = `Bearer ${token}`;
   const res = await fetch(`${base()}${path}`, {
     method,
@@ -76,6 +82,17 @@ export type FilesystemBrowseResponse = {
   parent: string;
   entries: FilesystemEntry[];
 };
+export type AppConfig = {
+  metadata_sources_enabled: string[];
+  metadata_default_region: string;
+  metadata_cache_ttl_days: number;
+  metadata_rate_limit_rps: number;
+  scan_inline_enrich: boolean;
+  metadata_scan_source: string;
+  googlebooks_api_key: string;
+  isbndb_api_key: string;
+  hardcover_api_key: string;
+};
 
 export const listLibraries = () =>
   call<{ items: Library[] }>("GET", "/libraries");
@@ -89,8 +106,7 @@ export const updateLibrary = (
   id: number,
   b: { name: string; media_type: string; enabled: boolean },
 ) => call("PATCH", `/libraries/${id}`, b);
-export const deleteLibrary = (id: number) =>
-  call("DELETE", `/libraries/${id}`);
+export const deleteLibrary = (id: number) => call("DELETE", `/libraries/${id}`);
 export const scanLibrary = (id: number) =>
   call<{ scan_event_id: number }>("POST", `/libraries/${id}/scan`);
 export const browseFilesystem = (path: string) =>
@@ -98,15 +114,16 @@ export const browseFilesystem = (path: string) =>
     "GET",
     `/filesystem/browse?${new URLSearchParams({ path }).toString()}`,
   );
-export const scanAll = () =>
-  call<{ scan_event_id: number }>("POST", "/scan");
-export const listScans = () =>
-  call<{ items: ScanEvent[] }>("GET", "/scans");
+export const scanAll = () => call<{ scan_event_id: number }>("POST", "/scan");
+export const listScans = () => call<{ items: ScanEvent[] }>("GET", "/scans");
 export const metadataQueue = () =>
   call<Record<string, number>>("GET", "/metadata/queue");
 export const metadataBackfill = () =>
   call<{ queued: number }>("POST", "/metadata/backfill");
 export const diagnostics = () =>
   call<Record<string, unknown>>("GET", "/diagnostics");
+export const getConfig = () => call<AppConfig>("GET", "/config");
+export const updateConfig = (body: AppConfig) =>
+  call<AppConfig>("PUT", "/config", body);
 
 export const MEDIA_TYPES = ["book", "comics", "manga", "documents"] as const;

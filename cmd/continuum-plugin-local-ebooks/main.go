@@ -57,6 +57,7 @@ func main() {
 		poolPtr   atomic.Pointer[pgxpool.Pool]
 		storePtr  atomic.Pointer[store.Store]
 		cfgPtr    atomic.Pointer[pluginrt.Config]
+		appCfgPtr atomic.Pointer[store.AppConfig]
 		workerPtr atomic.Pointer[metadata.EnrichmentWorker]
 		queuePtr  atomic.Pointer[metadata.Queue]
 		cachePtr  atomic.Pointer[metadata.Cache]
@@ -113,7 +114,7 @@ func main() {
 			logger.Warn("finish scan_event", "err", ferr)
 		}
 
-		if c := cfgPtr.Load(); c != nil && c.ScanInlineEnrich {
+		if c := appCfgPtr.Load(); c != nil && c.ScanInlineEnrich {
 			if w := workerPtr.Load(); w != nil {
 				if drainErr := w.Drain(ctx); drainErr != nil {
 					logger.Warn("inline enrichment drain", "err", drainErr)
@@ -187,6 +188,60 @@ func main() {
 	schedSrv := scheduler.New(tasks)
 
 	metaSrv := &metadataprovider.Server{}
+	configureMetadata := func(p *pgxpool.Pool, st *store.Store, appCfg store.AppConfig) {
+		ua := "continuum-local-ebooks/" + manifest.GetVersion()
+		reg := sources.NewRegistry()
+		reg.Register(sources.NewOpenLibrary(ua))
+		reg.Register(sources.NewGoogleBooks(appCfg.GoogleBooksAPIKey, ua))
+		reg.Register(sources.NewISBNdb(appCfg.ISBNdbAPIKey, ua))
+		reg.Register(sources.NewHardcover(appCfg.HardcoverAPIKey, ua))
+		reg.Register(sources.NewGoodreads(ua))
+		reg.Register(sources.NewAmazon(ua))
+		reg.Register(sources.NewAnnasArchive(ua))
+		reg.Register(sources.NewGutenberg(ua))
+		reg.Register(sources.NewBookBrainz(ua))
+		reg.Register(sources.NewFantasticFiction(ua))
+		reg.Register(sources.NewISFDB(ua))
+		reg.Register(sources.NewLibraryThing(ua))
+		reg.Register(sources.NewInternetArchive(ua))
+		reg.Register(sources.NewWorldCat(ua))
+		reg.Register(sources.NewDouban(ua))
+
+		ttl := time.Duration(appCfg.MetadataCacheTTLDays) * 24 * time.Hour
+		cache := metadata.NewCache(p, ttl)
+		cachePtr.Store(cache)
+		aggRegAdapter := newAggregatorRegistryAdapter(reg)
+		agg := metadata.NewAggregator(aggRegAdapter, cache, appCfg.MetadataRateLimitRPS)
+
+		q := metadata.NewQueue(p)
+		workerRegAdapter := newWorkerRegistryAdapter(reg)
+		worker := metadata.NewEnrichmentWorker(q, st, workerRegAdapter,
+			appCfg.MetadataScanSource, appCfg.MetadataDefaultRegion, logger)
+
+		queuePtr.Store(q)
+		workerPtr.Store(worker)
+
+		enabledFn := func() map[string]bool {
+			m := map[string]bool{}
+			if c := appCfgPtr.Load(); c != nil {
+				for _, id := range c.MetadataSourcesEnabled {
+					m[id] = true
+				}
+			}
+			return m
+		}
+		regionFn := func() string {
+			if c := appCfgPtr.Load(); c != nil {
+				return c.MetadataDefaultRegion
+			}
+			return "us"
+		}
+
+		metaSrv.SetAggregator(agg)
+		metaSrv.SetRegistry(reg)
+		metaSrv.SetEnabled(enabledFn)
+		metaSrv.SetRegion(regionFn)
+	}
 
 	rt := pluginrt.New(manifest, func(cfg pluginrt.Config) error {
 		ctx := context.Background()
@@ -207,6 +262,16 @@ func main() {
 			return fmt.Errorf("migrate: %w", err)
 		}
 		st := store.New(p)
+		if _, err := st.ImportLegacyAppConfig(ctx, appConfigFromRuntimeConfig(cfg)); err != nil {
+			p.Close()
+			return fmt.Errorf("import legacy app config: %w", err)
+		}
+		appCfg, err := st.GetAppConfig(ctx)
+		if err != nil {
+			p.Close()
+			return fmt.Errorf("load app config: %w", err)
+		}
+		appCfgPtr.Store(&appCfg)
 
 		for _, lib := range cfg.Libraries {
 			if err := st.SeedLibraryPath(ctx, store.LibraryPathConfig{
@@ -217,50 +282,24 @@ func main() {
 				logger.Warn("seed library_path", "path", lib.Path, "err", err)
 			}
 		}
-
-		ua := "continuum-local-ebooks/" + manifest.GetVersion()
-		reg := sources.NewRegistry()
-		reg.Register(sources.NewOpenLibrary(ua))
-		reg.Register(sources.NewGoogleBooks(cfg.GoogleBooksAPIKey, ua))
-		reg.Register(sources.NewISBNdb(cfg.ISBNdbAPIKey, ua))
-		reg.Register(sources.NewHardcover(cfg.HardcoverAPIKey, ua))
-		reg.Register(sources.NewGoodreads(ua))
-		reg.Register(sources.NewAmazon(ua))
-		reg.Register(sources.NewAnnasArchive(ua))
-		reg.Register(sources.NewGutenberg(ua))
-		reg.Register(sources.NewBookBrainz(ua))
-		reg.Register(sources.NewFantasticFiction(ua))
-		reg.Register(sources.NewISFDB(ua))
-		reg.Register(sources.NewLibraryThing(ua))
-		reg.Register(sources.NewInternetArchive(ua))
-		reg.Register(sources.NewWorldCat(ua))
-		reg.Register(sources.NewDouban(ua))
-
-		ttl := time.Duration(cfg.MetadataCacheTTLDays) * 24 * time.Hour
-		cache := metadata.NewCache(p, ttl)
-		cachePtr.Store(cache)
-		aggRegAdapter := newAggregatorRegistryAdapter(reg)
-		agg := metadata.NewAggregator(aggRegAdapter, cache, cfg.MetadataRateLimitRPS)
-
-		q := metadata.NewQueue(p)
-		workerRegAdapter := newWorkerRegistryAdapter(reg)
-		worker := metadata.NewEnrichmentWorker(q, st, workerRegAdapter,
-			cfg.MetadataScanSource, cfg.MetadataDefaultRegion, logger)
-
-		queuePtr.Store(q)
-		workerPtr.Store(worker)
+		configureMetadata(p, st, appCfg)
 
 		mux := http.NewServeMux()
 		catalogSrv := ebookbackend.NewServer(st, slogger)
 		server.MountCatalog(mux, catalogSrv)
 		server.MountAdminWithDeps(mux, server.AdminDeps{
-			Store:  st,
-			ScanFn: runScan,
+			Store:       st,
+			ConfigStore: st,
+			ScanFn:      runScan,
 			ConfigSnapshot: func() pluginrt.Config {
 				if c := cfgPtr.Load(); c != nil {
 					return *c
 				}
 				return pluginrt.Config{}
+			},
+			OnConfigUpdate: func(updated store.AppConfig) {
+				appCfgPtr.Store(&updated)
+				configureMetadata(p, st, updated)
 			},
 		})
 		server.MountLibraryRoutes(mux, server.LibraryDeps{
@@ -317,30 +356,9 @@ func main() {
 		cfgCopy := cfg
 		cfgPtr.Store(&cfgCopy)
 
-		enabledFn := func() map[string]bool {
-			m := map[string]bool{}
-			if c := cfgPtr.Load(); c != nil {
-				for _, id := range c.MetadataSourcesEnabled {
-					m[id] = true
-				}
-			}
-			return m
-		}
-		regionFn := func() string {
-			if c := cfgPtr.Load(); c != nil {
-				return c.MetadataDefaultRegion
-			}
-			return "us"
-		}
-
-		metaSrv.SetAggregator(agg)
-		metaSrv.SetRegistry(reg)
-		metaSrv.SetEnabled(enabledFn)
-		metaSrv.SetRegion(regionFn)
-
 		logger.Info("configured",
 			"library_paths", cfg.LibraryPaths,
-			"sources_enabled", len(cfg.MetadataSourcesEnabled))
+			"sources_enabled", len(appCfg.MetadataSourcesEnabled))
 		return nil
 	})
 
@@ -376,6 +394,20 @@ func loadManifest() (*pluginv1.PluginManifest, error) {
 		}
 	}
 	return manifest, nil
+}
+
+func appConfigFromRuntimeConfig(cfg pluginrt.Config) store.AppConfig {
+	return store.AppConfig{
+		MetadataSourcesEnabled: append([]string(nil), cfg.MetadataSourcesEnabled...),
+		MetadataDefaultRegion:  cfg.MetadataDefaultRegion,
+		MetadataCacheTTLDays:   cfg.MetadataCacheTTLDays,
+		MetadataRateLimitRPS:   cfg.MetadataRateLimitRPS,
+		ScanInlineEnrich:       cfg.ScanInlineEnrich,
+		MetadataScanSource:     cfg.MetadataScanSource,
+		GoogleBooksAPIKey:      cfg.GoogleBooksAPIKey,
+		ISBNdbAPIKey:           cfg.ISBNdbAPIKey,
+		HardcoverAPIKey:        cfg.HardcoverAPIKey,
+	}.WithDefaults()
 }
 
 func rewriteAdminAssetPaths(body []byte, requestPath string) []byte {
