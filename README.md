@@ -126,8 +126,10 @@ GRANT CONNECT ON DATABASE continuum TO plugin_local_ebooks;
 
 ## Detailed docs
 
-- [Setup, debugging, and communication flows](docs/setup-debug-flows.md)
-- [Operations](docs/operations.md)
+- [Setup, debugging, and communication flows](docs/setup-debug-flows.md) — runtime layout, state model, scan semantics, signing-secret coordination, standalone listener.
+- [Operations](docs/operations.md) — Postgres bootstrap, library config, scan triggers, metadata enrichment, troubleshooting, backups.
+- [Admin console](docs/admin-ui.md) — per-tab reference for Libraries / Scans / Metadata / Diagnostics.
+- [Ingest failure patterns](docs/troubleshooting.md) — per-format (`.epub` / `.pdf` / `.mobi` / `.fb2`) failure strings and operator actions.
 
 ## Build and release
 
