@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/ContinuumApp/continuum-plugin-local-ebooks/internal/metadata"
+	"github.com/RXWatcher/continuum-plugin-local-ebooks/internal/metadata"
 )
 
 const googleBooksID = "googlebooks"

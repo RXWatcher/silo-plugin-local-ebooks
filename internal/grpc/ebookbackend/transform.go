@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ContinuumApp/continuum-plugin-local-ebooks/internal/store"
+	"github.com/RXWatcher/continuum-plugin-local-ebooks/internal/store"
 )
 
 // ToBook converts a store.Ebook row into the wire summary shape. The cover URL

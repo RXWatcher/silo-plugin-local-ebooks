@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/ContinuumApp/continuum-plugin-local-ebooks/internal/store"
+	"github.com/RXWatcher/continuum-plugin-local-ebooks/internal/store"
 )
 
 // The portal proxies the ebook_backend.v1 contract under /api/v1/*. These

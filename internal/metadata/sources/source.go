@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ContinuumApp/continuum-plugin-local-ebooks/internal/metadata"
+	"github.com/RXWatcher/continuum-plugin-local-ebooks/internal/metadata"
 )
 
 // redactURL drops the query string before a URL is put in an error message.

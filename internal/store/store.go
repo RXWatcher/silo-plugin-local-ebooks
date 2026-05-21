@@ -11,7 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/ContinuumApp/continuum-plugin-local-ebooks/internal/ebookparse"
+	"github.com/RXWatcher/continuum-plugin-local-ebooks/internal/ebookparse"
 )
 
 // ErrDuplicatePath is returned when an insert would violate the unique path

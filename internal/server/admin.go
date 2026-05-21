@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"time"
 
-	pluginrt "github.com/ContinuumApp/continuum-plugin-local-ebooks/internal/runtime"
-	"github.com/ContinuumApp/continuum-plugin-local-ebooks/internal/store"
+	pluginrt "github.com/RXWatcher/continuum-plugin-local-ebooks/internal/runtime"
+	"github.com/RXWatcher/continuum-plugin-local-ebooks/internal/store"
 )
 
 // BackfillStore is the surface admin.go needs from *store.Store.

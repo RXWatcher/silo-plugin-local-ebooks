@@ -13,7 +13,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"github.com/ContinuumApp/continuum-plugin-local-ebooks/internal/migrate/files"
+	"github.com/RXWatcher/continuum-plugin-local-ebooks/internal/migrate/files"
 )
 
 const bookkeepingDDL = `

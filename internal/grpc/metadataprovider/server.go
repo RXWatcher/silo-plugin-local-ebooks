@@ -14,8 +14,8 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
 
-	"github.com/ContinuumApp/continuum-plugin-local-ebooks/internal/metadata"
-	"github.com/ContinuumApp/continuum-plugin-local-ebooks/internal/metadata/sources"
+	"github.com/RXWatcher/continuum-plugin-local-ebooks/internal/metadata"
+	"github.com/RXWatcher/continuum-plugin-local-ebooks/internal/metadata/sources"
 )
 
 var reHTMLTag = regexp.MustCompile(`<[^>]+>`)

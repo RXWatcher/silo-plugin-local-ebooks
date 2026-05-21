@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/ContinuumApp/continuum-plugin-local-ebooks/internal/store"
+	"github.com/RXWatcher/continuum-plugin-local-ebooks/internal/store"
 )
 
 // Regression: the by-id getters must not serve content from a disabled

@@ -22,17 +22,17 @@ import (
 	publicmanifest "github.com/ContinuumApp/continuum-plugin-sdk/pkg/pluginsdk/manifest"
 	sdkruntime "github.com/ContinuumApp/continuum-plugin-sdk/pkg/pluginsdk/runtime"
 
-	"github.com/ContinuumApp/continuum-plugin-local-ebooks/internal/grpc/ebookbackend"
-	"github.com/ContinuumApp/continuum-plugin-local-ebooks/internal/grpc/metadataprovider"
-	"github.com/ContinuumApp/continuum-plugin-local-ebooks/internal/httproutes"
-	"github.com/ContinuumApp/continuum-plugin-local-ebooks/internal/metadata"
-	"github.com/ContinuumApp/continuum-plugin-local-ebooks/internal/metadata/sources"
-	"github.com/ContinuumApp/continuum-plugin-local-ebooks/internal/migrate"
-	pluginrt "github.com/ContinuumApp/continuum-plugin-local-ebooks/internal/runtime"
-	"github.com/ContinuumApp/continuum-plugin-local-ebooks/internal/scanner"
-	"github.com/ContinuumApp/continuum-plugin-local-ebooks/internal/scheduler"
-	"github.com/ContinuumApp/continuum-plugin-local-ebooks/internal/server"
-	"github.com/ContinuumApp/continuum-plugin-local-ebooks/internal/store"
+	"github.com/RXWatcher/continuum-plugin-local-ebooks/internal/grpc/ebookbackend"
+	"github.com/RXWatcher/continuum-plugin-local-ebooks/internal/grpc/metadataprovider"
+	"github.com/RXWatcher/continuum-plugin-local-ebooks/internal/httproutes"
+	"github.com/RXWatcher/continuum-plugin-local-ebooks/internal/metadata"
+	"github.com/RXWatcher/continuum-plugin-local-ebooks/internal/metadata/sources"
+	"github.com/RXWatcher/continuum-plugin-local-ebooks/internal/migrate"
+	pluginrt "github.com/RXWatcher/continuum-plugin-local-ebooks/internal/runtime"
+	"github.com/RXWatcher/continuum-plugin-local-ebooks/internal/scanner"
+	"github.com/RXWatcher/continuum-plugin-local-ebooks/internal/scheduler"
+	"github.com/RXWatcher/continuum-plugin-local-ebooks/internal/server"
+	"github.com/RXWatcher/continuum-plugin-local-ebooks/internal/store"
 )
 
 //go:embed manifest.json

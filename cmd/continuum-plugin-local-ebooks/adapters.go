@@ -9,8 +9,8 @@ import (
 	"context"
 	"errors"
 
-	"github.com/ContinuumApp/continuum-plugin-local-ebooks/internal/metadata"
-	"github.com/ContinuumApp/continuum-plugin-local-ebooks/internal/metadata/sources"
+	"github.com/RXWatcher/continuum-plugin-local-ebooks/internal/metadata"
+	"github.com/RXWatcher/continuum-plugin-local-ebooks/internal/metadata/sources"
 )
 
 type aggregatorRegistryAdapter struct{ reg *sources.Registry }

@@ -6,7 +6,7 @@ package server
 import (
 	"net/http"
 
-	"github.com/ContinuumApp/continuum-plugin-local-ebooks/internal/grpc/ebookbackend"
+	"github.com/RXWatcher/continuum-plugin-local-ebooks/internal/grpc/ebookbackend"
 )
 
 // MountCatalog registers /catalog/* routes on mux. The handlers come from

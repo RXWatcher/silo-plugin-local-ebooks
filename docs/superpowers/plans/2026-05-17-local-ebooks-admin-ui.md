@@ -175,7 +175,7 @@ func NormalizePath(p string) (string, error) {
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `go test ./internal/libcfg/`
-Expected: `ok  github.com/ContinuumApp/continuum-plugin-local-ebooks/internal/libcfg`.
+Expected: `ok  github.com/RXWatcher/continuum-plugin-local-ebooks/internal/libcfg`.
 
 - [ ] **Step 5: Commit**
 
@@ -475,7 +475,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/ContinuumApp/continuum-plugin-local-ebooks/internal/store"
+	"github.com/RXWatcher/continuum-plugin-local-ebooks/internal/store"
 )
 
 type fakeLibStore struct {
@@ -583,8 +583,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/ContinuumApp/continuum-plugin-local-ebooks/internal/libcfg"
-	"github.com/ContinuumApp/continuum-plugin-local-ebooks/internal/store"
+	"github.com/RXWatcher/continuum-plugin-local-ebooks/internal/libcfg"
+	"github.com/RXWatcher/continuum-plugin-local-ebooks/internal/store"
 )
 
 // LibraryStore is the store surface the library admin handlers need.
@@ -920,7 +920,7 @@ git commit -m "chore(web): scaffold SPA toolchain (copied from ebooks portal)"
 
 - [ ] **Step 1: Add static + SPA fallback to the mux**
 
-In `cmd/continuum-plugin-local-ebooks/main.go`, after all `mux.HandleFunc(...)` admin/api registrations and before `httpSrv.SetHandler(mux)`, add (import `web "github.com/ContinuumApp/continuum-plugin-local-ebooks/web"` and `io/fs`, `strings`, `net/http` as needed):
+In `cmd/continuum-plugin-local-ebooks/main.go`, after all `mux.HandleFunc(...)` admin/api registrations and before `httpSrv.SetHandler(mux)`, add (import `web "github.com/RXWatcher/continuum-plugin-local-ebooks/web"` and `io/fs`, `strings`, `net/http` as needed):
 
 ```go
 		webFS := web.FS()

@@ -11,8 +11,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ContinuumApp/continuum-plugin-local-ebooks/internal/libcfg"
-	"github.com/ContinuumApp/continuum-plugin-local-ebooks/internal/store"
+	"github.com/RXWatcher/continuum-plugin-local-ebooks/internal/libcfg"
+	"github.com/RXWatcher/continuum-plugin-local-ebooks/internal/store"
 )
 
 // LibraryStore is the store surface the library admin handlers need.

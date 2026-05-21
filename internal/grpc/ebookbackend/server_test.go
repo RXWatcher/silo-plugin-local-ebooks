@@ -16,10 +16,10 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 
-	"github.com/ContinuumApp/continuum-plugin-local-ebooks/internal/grpc/ebookbackend"
-	"github.com/ContinuumApp/continuum-plugin-local-ebooks/internal/server"
-	"github.com/ContinuumApp/continuum-plugin-local-ebooks/internal/store"
-	"github.com/ContinuumApp/continuum-plugin-local-ebooks/internal/tokens"
+	"github.com/RXWatcher/continuum-plugin-local-ebooks/internal/grpc/ebookbackend"
+	"github.com/RXWatcher/continuum-plugin-local-ebooks/internal/server"
+	"github.com/RXWatcher/continuum-plugin-local-ebooks/internal/store"
+	"github.com/RXWatcher/continuum-plugin-local-ebooks/internal/tokens"
 )
 
 // --- transform unit tests --------------------------------------------------

@@ -15,8 +15,8 @@ import (
 
 	"golang.org/x/crypto/blake2b"
 
-	"github.com/ContinuumApp/continuum-plugin-local-ebooks/internal/ebookparse"
-	"github.com/ContinuumApp/continuum-plugin-local-ebooks/internal/store"
+	"github.com/RXWatcher/continuum-plugin-local-ebooks/internal/ebookparse"
+	"github.com/RXWatcher/continuum-plugin-local-ebooks/internal/store"
 )
 
 // EnrichmentEnqueuer is the surface the scanner needs from metadata.Queue.

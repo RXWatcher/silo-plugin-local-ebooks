@@ -7,8 +7,8 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/ContinuumApp/continuum-plugin-local-ebooks/internal/migrate"
-	"github.com/ContinuumApp/continuum-plugin-local-ebooks/internal/store"
+	"github.com/RXWatcher/continuum-plugin-local-ebooks/internal/migrate"
+	"github.com/RXWatcher/continuum-plugin-local-ebooks/internal/store"
 )
 
 func newCatalogPool(t *testing.T) (*store.Store, func()) {
