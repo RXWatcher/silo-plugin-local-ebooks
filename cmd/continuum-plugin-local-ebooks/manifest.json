@@ -40,13 +40,15 @@
       "type": "scheduled_task.v1",
       "id": "library_scan",
       "display_name": "Periodic library rescan",
-      "cron": "0 */6 * * *"
+      "cron": "0 */6 * * *",
+      "description": "Walks configured ebook/document library directories and upserts discovered titles."
     },
     {
       "type": "scheduled_task.v1",
       "id": "metadata_enrichment_worker",
       "display_name": "Metadata enrichment worker",
-      "cron": "* * * * *"
+      "cron": "* * * * *",
+      "description": "Fills missing ebook metadata by querying the bundled aggregator providers."
     },
     {
       "type": "http_routes.v1",
